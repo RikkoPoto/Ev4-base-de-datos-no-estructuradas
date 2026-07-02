@@ -7,7 +7,9 @@ Detallar con otros integrantes acerca de:
 
 ## Estructura de La aplicacion
 
+```
 ev4_bd-noestructuradas/
 ├── cogs    ← Se usara como carpeta para exportar opciones de configuracion para usar en main
 |    └── Conexion.py   ← Configuracion
 └── main.py    ← Iniciador de la aplicacion de desarrollo
+```
