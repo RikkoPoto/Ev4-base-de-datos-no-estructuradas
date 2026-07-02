@@ -5,7 +5,10 @@ Detallar con otros integrantes acerca de:
 - Sistema Operativo a usar
 - Asistencia con el informe y documentacion de la aplicacion
 
-## Cabe Recalcar que la aplicacion desarrollada debe usarse para produccion y estar compilada para uso general, intentar automatizar el proceso de la instalacion de python 3.14 si es posible
+## Aviso Importante 
+```
+Cabe Recalcar que la aplicacion desarrollada debe usarse para produccion y estar compilada para uso general, intentar automatizar el proceso de la instalacion de python 3.14 si es posible
+```
 
 # Estructura de La aplicacion
 
