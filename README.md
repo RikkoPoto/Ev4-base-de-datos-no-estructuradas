@@ -7,7 +7,9 @@ Detallar con otros integrantes acerca de:
 
 ## Aviso Importante 
 ```
-Cabe Recalcar que la aplicacion desarrollada debe usarse para produccion y estar compilada para uso general, intentar automatizar el proceso de la instalacion de python 3.14 si es posible
+Cabe Recalcar que la aplicacion desarrollada debe usarse para produccion 
+y estar compilada para uso general, intentar automatizar el proceso de 
+la instalacion de python 3.14 si es posible
 ```
 
 # Estructura de La aplicacion
