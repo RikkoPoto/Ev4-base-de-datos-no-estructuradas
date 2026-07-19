@@ -30,7 +30,7 @@ ev4_bd-noestructuradas/
 ├── main.py             ← Iniciador de la app y vistas de Tkinter
 ├── requirements.txt    ← Manifiesto de dependencias de desarrollo
 └── README.md           ← Documentación del proyecto
-
+```
 ---
 
 🌐 Configuración de la Base de Datos (VirtualBox)
