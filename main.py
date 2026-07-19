@@ -30,18 +30,19 @@ class AppComercioTechMongo:
     def crear_vista_clientes(self):
         frame_form = ttk.LabelFrame(self.tab_clientes, text=" Registrar Cliente ")
         frame_form.pack(fill="x", padx=10, pady=5)
+        frame_form.columnconfigure(1, weight=1) # <--- Agrega esta línea para que se estire
         
         ttk.Label(frame_form, text="Nombre:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.ent_cli_nombre = ttk.Entry(frame_form)
-        self.ent_cli_nombre.grid(row=0, column=1, padx=5, pady=5, fill="x", expand=True)
+        self.ent_cli_nombre.grid(row=0, column=1, padx=5, pady=5, sticky="ew") # <--- Cambiado aquí
         
         ttk.Label(frame_form, text="Email:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.ent_cli_email = ttk.Entry(frame_form)
-        self.ent_cli_email.grid(row=1, column=1, padx=5, pady=5, fill="x", expand=True)
+        self.ent_cli_email.grid(row=1, column=1, padx=5, pady=5, sticky="ew") # <--- Cambiado aquí
         
         ttk.Label(frame_form, text="Teléfono:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.ent_cli_tel = ttk.Entry(frame_form)
-        self.ent_cli_tel.grid(row=2, column=1, padx=5, pady=5, fill="x", expand=True)
+        self.ent_cli_tel.grid(row=2, column=1, padx=5, pady=5, sticky="ew") # <--- Cambiado aquí
         
         ttk.Button(frame_form, text="Guardar en Mongo", command=self.guardar_cliente).grid(row=3, column=0, columnspan=2, pady=10)
         
@@ -84,18 +85,19 @@ class AppComercioTechMongo:
     def crear_vista_productos(self):
         frame_form = ttk.LabelFrame(self.tab_productos, text=" Registrar Producto ")
         frame_form.pack(fill="x", padx=10, pady=5)
+        frame_form.columnconfigure(1, weight=1) # <--- Agrega esto
         
         ttk.Label(frame_form, text="Nombre:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.ent_prod_nombre = ttk.Entry(frame_form)
-        self.ent_prod_nombre.grid(row=0, column=1, padx=5, pady=5, fill="x", expand=True)
+        self.ent_prod_nombre.grid(row=0, column=1, padx=5, pady=5, sticky="ew") # <--- Cambiado
         
         ttk.Label(frame_form, text="Precio:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.ent_prod_precio = ttk.Entry(frame_form)
-        self.ent_prod_precio.grid(row=1, column=1, padx=5, pady=5, fill="x", expand=True)
+        self.ent_prod_precio.grid(row=1, column=1, padx=5, pady=5, sticky="ew") # <--- Cambiado
         
         ttk.Label(frame_form, text="Stock:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.ent_prod_stock = ttk.Entry(frame_form)
-        self.ent_prod_stock.grid(row=2, column=1, padx=5, pady=5, fill="x", expand=True)
+        self.ent_prod_stock.grid(row=2, column=1, padx=5, pady=5, sticky="ew") # <--- Cambiado
         
         ttk.Button(frame_form, text="Guardar Producto", command=self.guardar_producto).grid(row=3, column=0, columnspan=2, pady=10)
         

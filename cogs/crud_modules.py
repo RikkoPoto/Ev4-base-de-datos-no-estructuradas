@@ -1,5 +1,5 @@
 from bson import ObjectId
-from cogs.database import conectar_db
+from cogs.conexion import conectar_db
 
 # --- OPERACIONES CLIENTES ---
 def registrar_cliente(nombre, email, telefono):
