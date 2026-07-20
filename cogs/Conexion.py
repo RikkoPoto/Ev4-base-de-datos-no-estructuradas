@@ -1,20 +1,32 @@
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
+import pymongo.errors
 
-# CONFIGURACIÓN: Cambia esto por la IP de tu máquina virtual en VirtualBox
-IP_VIRTUALBOX = "localhost"  # Si usas reenvío de puertos o "192.168.X.X" si es puente
+IP_VIRTUALBOX = "192.168.18.114"
 PUERTO = 27017
+
+# --- NUEVO: Agrega las credenciales de tu MongoDB ---
+USUARIO = "admin"
+PASSWORD = "Admin123"
+BASE_DE_DATOS = "comercioTech"
 
 def conectar_db():
     try:
-        # Definimos un timeout corto (3 segundos) por si la VM está apagada
-        client = MongoClient(f"mongodb://{IP_VIRTUALBOX}:{PUERTO}/", serverSelectionTimeoutMS=3000)
-        # Forzar una consulta para verificar la conexión real
-        client.admin.command('ping')
+        # La URI ahora incluye el usuario y la contraseña
+        # Nota: authSource=admin le dice a Mongo que verifique las credenciales en la base de datos principal
+        uri = f"mongodb://{USUARIO}:{PASSWORD}@{IP_VIRTUALBOX}:{PUERTO}/?authSource=admin"
         
-        # Base de datos llamada "comerciotech"
-        db = client["comerciotech"]
+        client = MongoClient(uri, serverSelectionTimeoutMS=3000)
+        client.admin.command('ping') # Verificamos conexión
+        
+        db = client[BASE_DE_DATOS]
         return db
-    except ConnectionFailure:
-        print("Error: No se pudo conectar a MongoDB. ¿Está encendida la máquina virtual?")
+        
+    except pymongo.errors.OperationFailure:
+        print("❌ Error de Autenticación: El usuario o la contraseña son incorrectos.")
+        return None
+    except pymongo.errors.ServerSelectionTimeoutError:
+        print("❌ Error de Red: No se pudo alcanzar el servidor.")
+        return None
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
         return None
