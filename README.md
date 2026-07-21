@@ -1,78 +1,89 @@
-# Ev4-base-de-datos-no-estructuradas
+# 🛒 Documentación del Proyecto: ComercioTech (Ev4)
 
-Sistema de gestión para la empresa **ComercioTech** desarrollado en Python y Tkinter, conectado a un clúster local de MongoDB (Community Server) alojado en una máquina virtual.
-
-## 👥 Coordinación del Equipo de Desarrollo
-
-*   **MongoDB:** Configuración del servidor OVA, apertura de puertos (`27017`) y gestión de la librería `pymongo`.
-*   **Sistema Operativo:** Desarrollo y compilación en entorno Windows; Servidor de base de datos alojado en máquina virtual Linux.
-*   **Documentación:** Redacción del informe final, diagramas de arquitectura y manual de usuario de la aplicación.
+Sistema de gestión de base de datos no relacional (MongoDB) con interfaz gráfica en Python (Tkinter). Implementa un patrón de diseño MVC (Modelo-Vista-Controlador) para separar la lógica de negocio del diseño visual.
 
 ---
 
-## ⚠️ Aviso Importante (Entorno de Producción)
+## 📂 1. Estructura del Proyecto
 
-Esta aplicación está pensada para su uso general en producción. Para facilitar el despliegue al cliente final, **el software se distribuye compilado**. 
-
-Al empaquetar el sistema mediante herramientas de compilación, el intérprete de Python 3.14 y las dependencias quedan integrados en el binario. **No es necesario automatizar la instalación de Python en la máquina del cliente**, basta con ejecutar el archivo compilado directamente.
-
----
-
-## 📂 Estructura de la Aplicación
-
-El código utiliza una arquitectura modular para separar la interfaz de la lógica de datos:
+El proyecto está modularizado para garantizar un código limpio y escalable. Asegúrate de mantener esta jerarquía de carpetas:
 
 ```text
-ev4_bd-noestructuradas/
-├── cogs/               ← Carpeta de configuración y lógica de negocio
-│   ├── Crud.py         ← Operaciones NoSQL (Crear, Leer) y validaciones
-│   └── Conexion.py     ← Cadena de conexión hacia el servidor MongoDB
-├── main.py             ← Iniciador de la app y vistas de Tkinter
-├── requirements.txt    ← Manifiesto de dependencias de desarrollo
-└── README.md           ← Documentación del proyecto
+Ev4-base-de-datos-no-estructuradas/
+├── cogs/
+│   ├── Conexion.py          # Script de conexión al servidor MongoDB
+│   └── Crud.py              # Lógica de operaciones CRUD y consultas
+├── vistas/
+│   ├── __init__.py          # Archivo de inicialización del paquete
+│   ├── vista_clientes.py    # Interfaz de gestión de clientes
+│   ├── vista_productos.py   # Interfaz de inventario
+│   └── vista_pedidos.py     # Interfaz de transacciones y recibos
+├── main.py                  # Archivo principal de ejecución
+└── requirements.txt         # Lista de dependencias del proyecto
 ```
----
-
-🌐 Configuración de la Base de Datos (VirtualBox)
-Para que el aplicativo logre enlazar con MongoDB, la máquina virtual (OVA) debe cumplir con lo siguiente:
-
-Adaptador de Red: Configurado en modo Adaptador Puente para obtener una IP visible en la red local.
-
-Bind IP: El archivo /etc/mongod.conf dentro del servidor debe tener bindIp: 0.0.0.0 para permitir conexiones remotas.
-
-Conexión en App: Actualizar la IP resultante en el archivo cogs/Conexion.py.
 
 ---
 
-💻 Uso en Modo Desarrollo (Programadores)
-Si deseas modificar el código o ejecutarlo desde consola, sigue estos pasos:
+## 🚀 2. Instalación y Ejecución (Entorno Virtual)
 
-Crear y activar un entorno virtual:
+Para ejecutar este proyecto de forma aislada y evitar conflictos con otras bibliotecas de tu sistema, sigue estos pasos desde la terminal de tu proyecto:
 
-Bash
+**1. Crear el entorno virtual:**
+
+```bash
 python -m venv venv
-.\venv\Scripts\activate
-Instalar dependencias:
+```
 
-Bash
+**2. Activar el entorno virtual (Windows):**
+
+```bash
+venv\Scripts\activate
+```
+
+**3. Instalar las bibliotecas requeridas:**
+
+Asegúrate de tener tu archivo `requirements.txt` creado (debe contener `pymongo`). Luego ejecuta:
+
+```bash
 pip install -r requirements.txt
-Ejecutar:
+```
 
-Bash
+**4. Ejecutar la aplicación:**
+
+Con el entorno activado y tu máquina virtual de MongoDB encendida, inicia el sistema con:
+
+```bash
 python main.py
+```
 
 ---
 
-📦 Compilación para Producción
-Para generar el ejecutable final para el usuario:
+## 📖 3. Resumen y Funcionamiento del Código
 
-Instalar PyInstaller en el entorno virtual: pip install pyinstaller
+El sistema está diseñado para operar de manera inteligente, automatizando procesos y validando acciones del usuario. Así funciona cada módulo principal:
 
-Compilar en un solo archivo ocultando la consola de comandos:
+### ⚙️ Backend (Logica y Controladores)
 
-Bash
-pyinstaller --noconfirm --onedir --windowed main.py
-El archivo listo para producción se encontrará dentro de la carpeta dist/.
+**`cogs/Conexion.py`**: Es el puente de comunicación. Intenta conectarse a la IP de la máquina virtual (puerto 27017). Si el servidor no responde (timeout), bloquea el inicio de la app para evitar caídas inesperadas y avisa al usuario.
 
+**`cogs/Crud.py`**: El corazón de la aplicación.
 
-<FollowUp label="¿Quieres que te muestre cómo adaptar tu código a Conexion.py y Crud.py?" qu
+- **Auto-incremento**: lee el último código registrado en MongoDB (`CLI-X` o `PROD-X`) y le suma 1 matemáticamente para crear nuevos registros sin intervención manual.
+- **Cruce de datos (NoSQL)**: en lugar de guardar nombres duplicados en la colección de Pedidos, guarda sub-documentos y arreglos (detalle). Al consultar, viaja a las otras colecciones para traer los nombres reales en tiempo real.
+- **Agrupación**: si un pedido contiene múltiples artículos en su arreglo interno, los agrupa bajo la etiqueta "Varios" para mantener la tabla visual limpia.
+
+### 🖥️ Frontend (Vistas)
+
+**`main.py`**: configura la ventana raíz, aplica un tema visual moderno (estilo Dashboard) usando `ttk.Style` e inicializa un sistema de pestañas (Notebook) que carga las vistas de forma modular.
+
+**Módulo `vistas/`**: cada archivo controla su propia pestaña de manera independiente.
+
+- **Interactividad**: tienen una barra de búsqueda que filtra la tabla en memoria (`KeyRelease`), y las cabeceras de las columnas ordenan los datos (alfabética o numéricamente) al hacer clic.
+- **Seguridad UI**: bloquean la creación de registros si hay un ítem seleccionado, previniendo duplicaciones accidentales. Los botones destructivos (Eliminar) requieren confirmación.
+- **Ventanas emergentes (modals)**: la vista de pedidos escucha el evento de "Doble Clic" (`<Double-1>`) para generar una ventana flotante estilo recibo, iterando sobre el arreglo interno del pedido para mostrar el detalle de compra sin saturar la pantalla principal.
+
+---
+
+## 📚 Documentación Adicional
+
+Para una explicación funcional del sistema orientada al uso diario (sin detalles técnicos de código), consulta [`DOCUMENTACION.md`](./DOCUMENTACION.md).
