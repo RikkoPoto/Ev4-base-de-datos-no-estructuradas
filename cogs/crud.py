@@ -2,13 +2,26 @@ from bson.objectid import ObjectId
 from cogs.conexion import conectar_db
 
 # ==================== CLIENTES ====================
-def registrar_cliente(codigo, nombre, apellido, calle, numero, comuna, fono):
+def registrar_cliente(nombre, apellido, calle, numero, comuna, fono):
     db = conectar_db()
     if db is None: return False
-    if db.clientes.find_one({"codigo": codigo}): return False # Evitar duplicados
+    
+    # LÓGICA DE AUTO-INCREMENTO
+    ultimo = db.clientes.find_one(sort=[("codigo", -1)]) # Busca el último registro
+    if ultimo and "codigo" in ultimo and ultimo["codigo"].startswith("CLI-"):
+        try:
+            # Extrae el número (ej: CLI-003 -> 3) y le suma 1
+            num = int(ultimo["codigo"].split("-")[1])
+            codigo_nuevo = f"CLI-{num + 1:03d}" # Formatea con 3 ceros (CLI-004)
+        except:
+            codigo_nuevo = "CLI-001"
+    else:
+        codigo_nuevo = "CLI-001"
         
     db.clientes.insert_one({
-        "codigo": codigo, "nombre": nombre, "apellido_paterno": apellido,
+        "codigo": codigo_nuevo, 
+        "nombre": nombre, 
+        "apellido_paterno": apellido,
         "domicilio": {"calle": calle, "numero": numero, "comuna": comuna},
         "fono": fono
     })
@@ -44,11 +57,27 @@ def eliminar_cliente(codigo):
 
 
 # ==================== PRODUCTOS ====================
-def registrar_producto(codigo, nombre, precio, stock):
+def registrar_producto(nombre, precio, stock):
     db = conectar_db()
     if db is None: return False
-    if db.productos.find_one({"codigo": codigo}): return False
-    db.productos.insert_one({"codigo": codigo, "nombre": nombre, "precio": precio, "stock": stock})
+    
+    # LÓGICA DE AUTO-INCREMENTO
+    ultimo = db.productos.find_one(sort=[("codigo", -1)])
+    if ultimo and "codigo" in ultimo and ultimo["codigo"].startswith("PROD-"):
+        try:
+            num = int(ultimo["codigo"].split("-")[1])
+            codigo_nuevo = f"PROD-{num + 1:03d}"
+        except:
+            codigo_nuevo = "PROD-101"
+    else:
+        codigo_nuevo = "PROD-101"
+        
+    db.productos.insert_one({
+        "codigo": codigo_nuevo, 
+        "nombre": nombre, 
+        "precio": precio, 
+        "stock": stock
+    })
     return True
 
 def obtener_productos():
@@ -115,7 +144,6 @@ def obtener_pedidos():
     
     lista = []
     for p in db.pedidos.find().sort("numero", 1): 
-        # CAMBIO: Usamos el campo "numero" en vez de "_id"
         numero_pedido = p.get("numero", "N/A") 
         cod_cli = p.get("codigo_cliente", "")
         
@@ -126,13 +154,15 @@ def obtener_pedidos():
         else:
             nom_cli = "Desconocido"
 
-        # 2. CRUCE PRODUCTO
+        # 2. CRUCE PRODUCTO Y AGRUPACIÓN
         detalles = p.get("detalle", [])
         if not detalles:
             lista.append((numero_pedido, cod_cli, nom_cli, "N/A", "Sin productos", 0))
             continue
             
-        for det in detalles:
+        # Si el arreglo tiene exactamente 1 producto, se muestra normal
+        if len(detalles) == 1:
+            det = detalles[0]
             cod_prod = det.get("codigo_producto", "")
             cant = det.get("cantidad", 0)
             
@@ -144,7 +174,22 @@ def obtener_pedidos():
                 
             lista.append((numero_pedido, cod_cli, nom_cli, cod_prod, nom_prod, cant))
             
+        # Si el arreglo tiene más de 1 producto, se agrupa como "Varios"
+        else:
+            total_cant = sum(d.get("cantidad", 0) for d in detalles)
+            lista.append((numero_pedido, cod_cli, nom_cli, "Varios", "Varios Productos", total_cant))
+            
     return lista
+
+#Ventana Emergetne - DETALLE PEDIDO
+def obtener_pedido_por_numero(numero):
+    db = conectar_db()
+    if db is None: return None
+    try:
+        # Buscamos el documento completo del pedido
+        return db.pedidos.find_one({"numero": int(numero)})
+    except ValueError:
+        return None
 
 def eliminar_pedido(numero_pedido):
     db = conectar_db()
