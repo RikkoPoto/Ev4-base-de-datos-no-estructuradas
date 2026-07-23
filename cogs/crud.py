@@ -121,38 +121,58 @@ def eliminar_producto(codigo):
 from datetime import datetime
 
 # ==================== PEDIDOS ====================
-def registrar_pedido(codigo_cliente, codigo_producto, cantidad):
+def registrar_pedido(codigo_cliente, carrito):
+    """
+    carrito debe ser una lista de diccionarios: [{"codigo": "PROD-101", "cantidad": 2}, ...]
+    """
     db = conectar_db()
     if db is None: return False, "Error de conexión a la base de datos."
     
     cliente = db.clientes.find_one({"codigo": codigo_cliente.strip()})
-    producto = db.productos.find_one({"codigo": codigo_producto.strip()})
-    
     if not cliente: return False, "El cliente ingresado no existe."
-    if not producto: return False, "El producto ingresado no existe."
+    if not carrito: return False, "El carrito está vacío. Seleccione al menos un producto."
     
-    stock_actual = int(producto.get("stock", 0))
-    if cantidad > stock_actual:
-        return False, f"Stock insuficiente. Solo hay {stock_actual} unidades disponibles."
+    total_pedido = 0
+    detalles = []
     
-    if cantidad <= 0: return False, "La cantidad a vender debe ser mayor a cero."
+    # 1. Validar el stock de TODOS los productos antes de hacer descuentos
+    for i, item in enumerate(carrito):
+        prod = db.productos.find_one({"codigo": item["codigo"]})
+        if not prod: return False, f"El producto {item['codigo']} no existe."
         
-    total_linea = float(producto.get("precio", 0)) * cantidad
-    
-    # --- REQUISITO N°12: DESCONTAR STOCK ---
-    db.productos.update_one(
-        {"codigo": producto["codigo"]},
-        {"$inc": {"stock": -cantidad}} # El signo negativo resta la cantidad
-    )
-
+        stock_actual = int(prod.get("stock", 0))
+        if item["cantidad"] > stock_actual:
+            return False, f"Stock insuficiente. Solo quedan {stock_actual} de {prod.get('nombre')}."
+        if item["cantidad"] <= 0:
+            return False, "Las cantidades deben ser mayores a cero."
+            
+        t_linea = float(prod.get("precio", 0)) * item["cantidad"]
+        total_pedido += t_linea
+        
+        detalles.append({
+            "numero_linea": i + 1,
+            "codigo_producto": prod["codigo"],
+            "cantidad": item["cantidad"],
+            "total_linea": t_linea
+        })
+        
+    # 2. Si todo el stock es válido, procedemos a descontarlo
+    for item in carrito:
+        db.productos.update_one(
+            {"codigo": item["codigo"]},
+            {"$inc": {"stock": -item["cantidad"]}}
+        )
+        
+    # 3. Registrar el pedido con el arreglo completo
     db.pedidos.insert_one({
         "numero": db.pedidos.count_documents({}) + 1001,
         "fecha": datetime.now(), 
         "codigo_cliente": cliente["codigo"], 
-        "total": total_linea,
-        "detalle": [{"numero_linea": 1, "codigo_producto": producto["codigo"], "cantidad": cantidad, "total_linea": total_linea}]
+        "total": total_pedido,
+        "detalle": detalles
     })
-    return True, "Pedido creado y stock descontado exitosamente."
+    
+    return True, "Pedido creado y stock actualizado exitosamente."
 
 def obtener_pedidos():
     db = conectar_db()
@@ -228,7 +248,7 @@ def eliminar_pedido(numero_pedido):
         # Ahora sí, eliminamos el pedido
         res = db.pedidos.delete_one({"numero": int(numero_pedido)})
         if res.deleted_count > 0:
-            return True, "Pedido anulado y stock devuelto a bodega."
+            return True, "Pedido anulado y stock actualizado."
         return False, "No se pudo eliminar el pedido."
     except ValueError:
         return False, "Número de pedido inválido."
