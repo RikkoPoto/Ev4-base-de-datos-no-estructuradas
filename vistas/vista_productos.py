@@ -95,36 +95,44 @@ class VistaProductos:
                 self.entries["Stock:"].insert(0, prod["stock"])
 
     def crear(self):
-        # Validar que no haya un registro seleccionado
-        if self.entries["Código:"].get() != "Auto-generado":
-            messagebox.showwarning("Acción Denegada", "Tiene un producto seleccionado en la tabla.\n\nPara crear un registro nuevo, presione el botón 'Limpiar' primero.")
-            return
-            
+        if self.entries["Código:"].get() != "Auto-generado": return messagebox.showwarning("Denegado", "Limpie campos primero.")
+        
+        # VALIDACIÓN N°9: Campos vacíos
+        if not all([self.entries["Nombre:"].get().strip(), self.entries["Precio:"].get().strip(), self.entries["Stock:"].get().strip()]):
+            return messagebox.showwarning("Campos Vacíos", "Por favor, complete todos los campos del producto. No se permiten datos vacíos.")
+
         try:
             if crud.registrar_producto(self.entries["Nombre:"].get(), int(self.entries["Precio:"].get()), int(self.entries["Stock:"].get())):
-                self.limpiar()
-                self.actualizar_tabla()
+                self.limpiar(); self.actualizar_tabla()
         except ValueError: messagebox.showerror("Error", "Precio y Stock deben ser numéricos.")
 
     def modificar(self):
+        # VALIDACIÓN N°9: Campos vacíos
+        if not all([self.entries["Nombre:"].get().strip(), self.entries["Precio:"].get().strip(), self.entries["Stock:"].get().strip()]):
+            return messagebox.showwarning("Campos Vacíos", "Por favor, complete todos los campos del producto. No se permiten datos vacíos.")
+
         try:
-            self.entries["Código:"].config(state="normal")
-            cod = self.entries["Código:"].get()
-            self.entries["Código:"].config(state="readonly")
-            if crud.actualizar_producto(cod, self.entries["Nombre:"].get(), int(self.entries["Precio:"].get()), int(self.entries["Stock:"].get())):
-                self.limpiar()
-                self.actualizar_tabla()
-        except ValueError: messagebox.showerror("Error", "Valores numéricos inválidos.")
+            self.entries["Código:"].config(state="normal"); c = self.entries["Código:"].get(); self.entries["Código:"].config(state="readonly")
+            if crud.actualizar_producto(c, self.entries["Nombre:"].get(), int(self.entries["Precio:"].get()), int(self.entries["Stock:"].get())):
+                self.limpiar(); self.actualizar_tabla()
+        except ValueError: messagebox.showerror("Error", "Precio y Stock deben ser numéricos.")
 
     def eliminar(self):
         self.entries["Código:"].config(state="normal")
-        cod = self.entries["Código:"].get()
+        c = self.entries["Código:"].get().strip()
         self.entries["Código:"].config(state="readonly")
         
-        if cod and cod != "Auto-generado" and messagebox.askyesno("Confirmar", f"¿Eliminar {cod}?"):
-            crud.eliminar_producto(cod)
-            self.limpiar()
-            self.actualizar_tabla()
+        if c != "Auto-generado" and messagebox.askyesno("Confirmar", f"¿Eliminar el producto {c}?"):
+            # Recibimos el estado y el mensaje
+            exito, mensaje = crud.eliminar_producto(c)
+            
+            if exito:
+                messagebox.showinfo("Éxito", mensaje)
+                self.limpiar()
+                self.actualizar_tabla()
+            else:
+                # Si falla por integridad referencial, lanzamos el error
+                messagebox.showerror("Acción Denegada", mensaje)
 
     def limpiar(self):
         self.entries["Código:"].config(state="normal")

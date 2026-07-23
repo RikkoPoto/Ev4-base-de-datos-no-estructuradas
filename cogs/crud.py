@@ -50,10 +50,18 @@ def actualizar_cliente(codigo, nombre, apellido, calle, numero, comuna, fono):
 
 def eliminar_cliente(codigo):
     db = conectar_db()
-    if db is None: return False
-    # Agregamos .strip() para limpiar espacios accidentales
-    res = db.clientes.delete_one({"codigo": codigo.strip()})
-    return res.deleted_count > 0
+    if db is None: return False, "Error de conexión."
+    codigo = codigo.strip()
+    
+    # REQUISITO N°13: Integridad Referencial
+    # Si el cliente ya compró algo, no se puede borrar.
+    if db.pedidos.find_one({"codigo_cliente": codigo}):
+        return False, "DENEGADO: No se puede eliminar a este cliente porque ya tiene pedidos históricos asociados en el sistema."
+        
+    res = db.clientes.delete_one({"codigo": codigo})
+    if res.deleted_count > 0:
+        return True, "Cliente eliminado exitosamente."
+    return False, "No se encontró el cliente a eliminar."
 
 
 # ==================== PRODUCTOS ====================
@@ -96,8 +104,18 @@ def actualizar_producto(codigo, nombre, precio, stock):
 
 def eliminar_producto(codigo):
     db = conectar_db()
+    if db is None: return False, "Error de conexión."
+    codigo = codigo.strip()
+    
+    # REQUISITO N°13: Integridad Referencial
+    # Si el producto está mencionado dentro del arreglo "detalle" de cualquier pedido, no se borra.
+    if db.pedidos.find_one({"detalle.codigo_producto": codigo}):
+        return False, "DENEGADO: No se puede eliminar este producto porque forma parte de recibos ya emitidos en el sistema."
+        
     res = db.productos.delete_one({"codigo": codigo})
-    return res.deleted_count > 0
+    if res.deleted_count > 0:
+        return True, "Producto eliminado exitosamente."
+    return False, "No se encontró el producto a eliminar."
 
 
 from datetime import datetime
@@ -105,38 +123,36 @@ from datetime import datetime
 # ==================== PEDIDOS ====================
 def registrar_pedido(codigo_cliente, codigo_producto, cantidad):
     db = conectar_db()
-    if db is None: return False
+    if db is None: return False, "Error de conexión a la base de datos."
     
-    # Buscamos que existan
     cliente = db.clientes.find_one({"codigo": codigo_cliente.strip()})
     producto = db.productos.find_one({"codigo": codigo_producto.strip()})
     
-    if not cliente or not producto: 
-        return False
-        
-    # Calculamos el total usando el precio del producto
-    precio_unitario = float(producto.get("precio", 0))
-    total_linea = precio_unitario * cantidad
+    if not cliente: return False, "El cliente ingresado no existe."
+    if not producto: return False, "El producto ingresado no existe."
     
-    # Generamos un número de pedido autoincremental simple
-    numero_pedido = db.pedidos.count_documents({}) + 1001
+    stock_actual = int(producto.get("stock", 0))
+    if cantidad > stock_actual:
+        return False, f"Stock insuficiente. Solo hay {stock_actual} unidades disponibles."
+    
+    if cantidad <= 0: return False, "La cantidad a vender debe ser mayor a cero."
+        
+    total_linea = float(producto.get("precio", 0)) * cantidad
+    
+    # --- REQUISITO N°12: DESCONTAR STOCK ---
+    db.productos.update_one(
+        {"codigo": producto["codigo"]},
+        {"$inc": {"stock": -cantidad}} # El signo negativo resta la cantidad
+    )
 
-    # Insertamos respetando EXACTAMENTE la estructura de tu imagen
     db.pedidos.insert_one({
-        "numero": numero_pedido,
-        "fecha": datetime.now(),
-        "codigo_cliente": cliente["codigo"],
+        "numero": db.pedidos.count_documents({}) + 1001,
+        "fecha": datetime.now(), 
+        "codigo_cliente": cliente["codigo"], 
         "total": total_linea,
-        "detalle": [
-            {
-                "numero_linea": 1,
-                "codigo_producto": producto["codigo"],
-                "cantidad": cantidad,
-                "total_linea": total_linea
-            }
-        ]
+        "detalle": [{"numero_linea": 1, "codigo_producto": producto["codigo"], "cantidad": cantidad, "total_linea": total_linea}]
     })
-    return True
+    return True, "Pedido creado y stock descontado exitosamente."
 
 def obtener_pedidos():
     db = conectar_db()
@@ -193,13 +209,26 @@ def obtener_pedido_por_numero(numero):
 
 def eliminar_pedido(numero_pedido):
     db = conectar_db()
+    if db is None: return False, "Error de conexión."
     try:
-        # Convertimos a número entero porque en MongoDB se guardó como int (ej: 1001)
+        # Buscamos el pedido ANTES de eliminarlo para saber qué productos devolver
+        pedido = db.pedidos.find_one({"numero": int(numero_pedido)})
+        if not pedido: return False, "Pedido no encontrado."
+        
+        # --- REQUISITO N°12: DEVOLVER STOCK A BODEGA ---
+        for det in pedido.get("detalle", []):
+            cod_prod = det.get("codigo_producto")
+            cant = det.get("cantidad", 0)
+            if cod_prod:
+                db.productos.update_one(
+                    {"codigo": cod_prod},
+                    {"$inc": {"stock": cant}} # Número positivo devuelve el stock
+                )
+        
+        # Ahora sí, eliminamos el pedido
         res = db.pedidos.delete_one({"numero": int(numero_pedido)})
-        return res.deleted_count > 0
+        if res.deleted_count > 0:
+            return True, "Pedido anulado y stock devuelto a bodega."
+        return False, "No se pudo eliminar el pedido."
     except ValueError:
-        # Evita caídas si el registro es muy antiguo y dice "N/A"
-        return False
-    except Exception as e:
-        print(f"Error al eliminar pedido: {e}")
-        return False
+        return False, "Número de pedido inválido."

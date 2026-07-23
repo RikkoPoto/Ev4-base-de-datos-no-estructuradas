@@ -124,37 +124,40 @@ class VistaClientes:
                 self.ent_com.insert(0, domicilio.get("comuna", ""))
 
     def crear(self):
-        # Validar que no haya un registro seleccionado
-        if self.ent_cod.get() != "Auto-generado":
-            messagebox.showwarning("Acción Denegada", "Tiene un cliente seleccionado en la tabla.\n\nPara crear un registro nuevo, presione el botón 'Limpiar Campos' primero.")
-            return
-            
+        if self.ent_cod.get() != "Auto-generado": return messagebox.showwarning("Denegado", "Limpie los campos primero.")
+        
+        # VALIDACIÓN N°9: Campos vacíos
+        if not all([self.ent_nom.get().strip(), self.ent_ape.get().strip(), self.ent_calle.get().strip(), self.ent_num.get().strip(), self.ent_com.get().strip(), self.ent_fono.get().strip()]):
+            return messagebox.showwarning("Campos Vacíos", "Por favor, complete todos los campos del cliente. No se permiten datos vacíos.")
+
         if crud.registrar_cliente(self.ent_nom.get(), self.ent_ape.get(), self.ent_calle.get(), self.ent_num.get(), self.ent_com.get(), self.ent_fono.get()):
-            messagebox.showinfo("Éxito", "Cliente creado. Código asignado automáticamente.")
-            self.limpiar()
-            self.actualizar_tabla()
-        else: messagebox.showerror("Error", "Error al crear.")
+            self.limpiar(); self.actualizar_tabla()
 
     def modificar(self):
-        self.ent_cod.config(state="normal") # Desbloqueamos temporalmente para leerlo
-        cod = self.ent_cod.get().strip()
-        self.ent_cod.config(state="readonly")
-        
+        # VALIDACIÓN N°9: Campos vacíos
+        if not all([self.ent_nom.get().strip(), self.ent_ape.get().strip(), self.ent_calle.get().strip(), self.ent_num.get().strip(), self.ent_com.get().strip(), self.ent_fono.get().strip()]):
+            return messagebox.showwarning("Campos Vacíos", "Por favor, complete todos los campos del cliente. No se permiten datos vacíos.")
+
+        self.ent_cod.config(state="normal"); cod = self.ent_cod.get().strip(); self.ent_cod.config(state="readonly")
         if crud.actualizar_cliente(cod, self.ent_nom.get(), self.ent_ape.get(), self.ent_calle.get(), self.ent_num.get(), self.ent_com.get(), self.ent_fono.get()):
-            messagebox.showinfo("Éxito", "Cliente modificado.")
-            self.limpiar()
-            self.actualizar_tabla()
+            self.limpiar(); self.actualizar_tabla()
 
     def eliminar(self):
         self.ent_cod.config(state="normal")
         cod = self.ent_cod.get().strip()
         self.ent_cod.config(state="readonly")
         
-        if cod and cod != "Auto-generado":
-            if messagebox.askyesno("Confirmar", f"¿Eliminar cliente {cod}?"):
-                crud.eliminar_cliente(cod)
+        if cod != "Auto-generado" and messagebox.askyesno("Confirmar", f"¿Eliminar el cliente {cod}?"):
+            # Recibimos el estado y el mensaje
+            exito, mensaje = crud.eliminar_cliente(cod)
+            
+            if exito:
+                messagebox.showinfo("Éxito", mensaje)
                 self.limpiar()
                 self.actualizar_tabla()
+            else:
+                # Si falla por integridad referencial, lanzamos el error
+                messagebox.showerror("Acción Denegada", mensaje)
 
     def limpiar(self):
         self.ent_cod.config(state="normal")

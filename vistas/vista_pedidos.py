@@ -183,26 +183,41 @@ class VistaPedidos:
         ttk.Button(top, text="Cerrar Detalle", command=top.destroy).pack(pady=10)
 
     def crear(self):
-        # Validar que no haya un pedido seleccionado para evitar duplicados accidentales
-        if self.id_seleccionado is not None:
-            messagebox.showwarning("Acción Denegada", "Tiene un pedido seleccionado en la tabla.\n\nPara registrar uno nuevo, presione el botón 'Limpiar' primero.")
-            return
-            
+        if self.id_seleccionado: return messagebox.showwarning("Denegado", "Limpie campos primero.")
+        
+        # Validación N°9 (Campos vacíos)
+        if not all([self.ent_cli.get().strip(), self.ent_prod.get().strip(), self.ent_cant.get().strip()]):
+            return messagebox.showwarning("Campos Vacíos", "Por favor, complete todos los campos del pedido. No se permiten datos vacíos.")
+
         try:
-            if crud.registrar_pedido(self.ent_cli.get(), self.ent_prod.get(), int(self.ent_cant.get())):
+            cantidad_pedida = int(self.ent_cant.get())
+            
+            # Recibimos el estado (True/False) y el mensaje de error o éxito
+            exito, mensaje = crud.registrar_pedido(self.ent_cli.get(), self.ent_prod.get(), cantidad_pedida)
+            
+            if exito: 
                 self.actualizar_tabla()
                 self.limpiar()
-            else: messagebox.showerror("Error", "Cliente o Producto no encontrado en la base de datos.")
+                messagebox.showinfo("Éxito", mensaje)
+            else: 
+                # Validación N°11 (Muestra si faltó stock o si no existe)
+                messagebox.showerror("Error al crear pedido", mensaje)
+                
         except ValueError: messagebox.showerror("Error", "La cantidad debe ser un número entero.")
 
     def eliminar(self):
         if self.id_seleccionado:
-            if messagebox.askyesno("Confirmar", f"¿Estás seguro de eliminar el pedido N° {self.id_seleccionado}?"):
-                if crud.eliminar_pedido(self.id_seleccionado):
-                    messagebox.showinfo("Éxito", "Pedido eliminado correctamente.")
+            if messagebox.askyesno("Confirmar Anulación", f"¿Estás seguro de anular el pedido N° {self.id_seleccionado}? El stock será devuelto."):
+                
+                # Leemos la tupla que nos manda el CRUD
+                exito, mensaje = crud.eliminar_pedido(self.id_seleccionado)
+                
+                if exito:
+                    messagebox.showinfo("Éxito", mensaje)
                     self.limpiar()
+                    self.actualizar_tabla()
                 else:
-                    messagebox.showerror("Error", "No se encontró el pedido para eliminar.")
+                    messagebox.showerror("Error", mensaje)
         else:
             messagebox.showwarning("Atención", "Por favor, selecciona un pedido de la tabla primero.")
 
