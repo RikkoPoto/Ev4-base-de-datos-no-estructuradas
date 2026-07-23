@@ -44,6 +44,11 @@ class VistaPedidos:
         # Vinculamos el clic a la ventana emergente
         self.ent_prod.bind("<Button-1>", self.abrir_selector_productos)
         
+        ttk.Label(ff, text="Cant. Total:").grid(row=1, column=2, padx=5, pady=5, sticky="w")
+        self.ent_cant = ttk.Entry(ff)
+        self.ent_cant.grid(row=1, column=3, padx=5, pady=5, sticky="ew")
+        self.ent_cant.insert(0, "0")
+        self.ent_cant.config(state="readonly")
         
         # 3. BOTONES
         fbtn = ttk.Frame(ff)
